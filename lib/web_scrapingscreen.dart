@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import 'package:url_launcher/url_launcher.dart';
 import '../news_provider.dart';
+import 'package:url_launcher/url_launcher.dart';
 
-class NewsScreen extends StatelessWidget {
+class WebScrapingScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -43,12 +43,17 @@ class NewsScreen extends StatelessWidget {
               itemCount: newsProvider.news.length,
               itemBuilder: (context, index) {
                 return ListTile(
-                  leading: newsProvider.news[index]['image'] != ''
-                      ? Image.network(newsProvider.news[index]['image']!)
-                      : null,
                   title: Text(newsProvider.news[index]['title']!),
                   subtitle: Text(newsProvider.news[index]['description']!),
-                  onTap: () => _launchURL(context, newsProvider.news[index]['link']!),
+                  leading: newsProvider.news[index]['image'] != null
+                      ? Image.network(newsProvider.news[index]['image']!)
+                      : null,
+                  onTap: () {
+                    final url = newsProvider.news[index]['link'];
+                    if (url != null && url.isNotEmpty) {
+                      _launchURL(url);
+                    }
+                  },
                 );
               },
             );
@@ -58,14 +63,11 @@ class NewsScreen extends StatelessWidget {
     );
   }
 
-  void _launchURL(BuildContext context, String url) async {
-    final Uri uri = Uri.parse(url);
-    if (await canLaunchUrl(uri)) {
-      await launchUrl(uri);
+  void _launchURL(String url) async {
+    if (await canLaunch(url)) {
+      await launch(url);
     } else {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Could not launch $url')),
-      );
+      throw 'Could not launch $url';
     }
   }
 }

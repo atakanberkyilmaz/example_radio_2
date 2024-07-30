@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:dio/dio.dart';
 import 'package:translator/translator.dart';
-import 'package:xml/xml.dart' as xml;
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:html/parser.dart' as parser;
 
 class NewsProvider with ChangeNotifier {
   List<Map<String, String>> _news = [];
@@ -22,41 +22,46 @@ class NewsProvider with ChangeNotifier {
     notifyListeners();
 
     final url = await _getNewsURL();
-    if (url != null) {
+    print("News URL: $url");
+    if (url != null && url.isNotEmpty) {
       try {
         final response = await Dio().get(url);
         if (response.statusCode == 200) {
-          final document = xml.XmlDocument.parse(response.data);
-          final items = document.findAllElements('item');
+          final document = parser.parse(response.data);
+
+          // Güncellenen HTML elementlerini burada hedefleyin
+          final items = document.querySelectorAll('li.row.feed__item');
+          print("Items found: ${items.length}");
 
           if (toLang != 'en') {
             final translator = GoogleTranslator();
             _news = await Future.wait(items.map((item) async {
-              String title = item.findElements('title').single.text;
-              String description = item.findElements('description').single.text;
-
+              String title = item.querySelector('h3.feed__title')?.text.trim() ?? '';
+              String description = item.querySelector('p.feed__description')?.text.trim() ?? '';
+              String imageUrl = item.querySelector('img')?.attributes['src'] ?? '';
+              String link = item.querySelector('a')?.attributes['href'] ?? '';
               String translatedTitle = await _translateText(title, toLang, translator);
               String translatedDescription = await _translateText(description, toLang, translator);
-
               return {
                 'title': translatedTitle,
                 'description': translatedDescription,
+                'image': imageUrl,
+                'link': link,
               };
             }).toList());
           } else {
-            final translator = GoogleTranslator();
-            _news = await Future.wait(items.map((item) async {
-              String title = item.findElements('title').single.text;
-              String description = item.findElements('description').single.text;
-
-              String translatedTitle = await _translateText(title, toLang, translator);
-              String translatedDescription = await _translateText(description, toLang, translator);
-
+            _news = items.map((item) {
+              String title = item.querySelector('h3.feed__title')?.text.trim() ?? '';
+              String description = item.querySelector('p.feed__description')?.text.trim() ?? '';
+              String imageUrl = item.querySelector('img')?.attributes['src'] ?? '';
+              String link = item.querySelector('a')?.attributes['href'] ?? '';
               return {
-                'title': translatedTitle,
-                'description': translatedDescription,
+                'title': title,
+                'description': description,
+                'image': imageUrl,
+                'link': link,
               };
-            }).toList());
+            }).toList();
           }
         } else {
           print("Error: ${response.statusMessage}");
@@ -85,19 +90,12 @@ class NewsProvider with ChangeNotifier {
   }
 
   Future<String> _translateText(String text, String toLang, GoogleTranslator translator) async {
-    try {
-      var translation = await translator.translate(text, from: 'auto', to: toLang);
-      return translation.text;
-    } catch (e) {
-      print("Error translating text: $e");
-      return text; // Hata durumunda orijinal metni döndür
-    }
+    var translation = await translator.translate(text, to: toLang);
+    return translation.text;
   }
 
   void changeLanguage(String newLang) {
-    if (_currentLang != newLang) {
-      _currentLang = newLang;
-      fetchNews(newLang);
-    }
+    _currentLang = newLang;
+    fetchNews(newLang);
   }
 }
