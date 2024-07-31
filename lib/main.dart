@@ -6,6 +6,7 @@ import 'package:provider/provider.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:awesome_notifications/awesome_notifications.dart';
 import 'news_provider.dart';
+import 'news_detail_provider.dart'; // Import this line
 import 'screens/home_screen.dart';
 import 'screens/radio_screen1.dart';
 import 'screens/radio_screen2.dart';
@@ -40,7 +41,6 @@ void main() async {
       ],
     );
   }
-
   NotificationService.initialize();
 
   runApp(MyApp());
@@ -55,6 +55,7 @@ class MyApp extends StatelessWidget {
       providers: [
         ChangeNotifierProvider(create: (_) => RadioProvider()),
         ChangeNotifierProvider(create: (_) => NewsProvider()),
+        ChangeNotifierProvider(create: (_) => NewsDetailProvider()), // Add this line
       ],
       child: MaterialApp(
         navigatorKey: navigatorKey,

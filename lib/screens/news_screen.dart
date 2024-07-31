@@ -1,8 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import 'package:cached_network_image/cached_network_image.dart'; // Bu satırı ekleyin
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:url_launcher/url_launcher.dart';
 import '../news_provider.dart';
+import 'news_detail_screen.dart'; // Bu satırı ekleyin
 
 class NewsScreen extends StatelessWidget {
   @override
@@ -53,7 +54,14 @@ class NewsScreen extends StatelessWidget {
                       : Icon(Icons.image),
                   title: Text(newsProvider.news[index]['title']!),
                   subtitle: Text(newsProvider.news[index]['description']!),
-                  onTap: () => _launchURL(context, newsProvider.news[index]['link']!),
+                  onTap: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => NewsDetailScreen(url: newsProvider.news[index]['link']!),
+                      ),
+                    );
+                  },
                 );
               },
             );

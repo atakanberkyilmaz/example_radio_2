@@ -45,6 +45,7 @@ class NewsProvider with ChangeNotifier {
               String imageUrl = await _fetchImageURL(link);
               String translatedTitle = await _translateText(title, toLang, translator);
               String translatedDescription = await _translateText(description, toLang, translator);
+              await Future.delayed(Duration(milliseconds: 500)); // Gecikme ekleyin
               return {
                 'title': translatedTitle,
                 'description': translatedDescription,
@@ -61,6 +62,7 @@ class NewsProvider with ChangeNotifier {
                 link = 'https://www.constructiondive.com$link';
               }
               String imageUrl = await _fetchImageURL(link);
+              await Future.delayed(Duration(milliseconds: 500)); // Gecikme ekleyin
               return {
                 'title': title,
                 'description': description,
