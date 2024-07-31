@@ -1,5 +1,5 @@
-import 'package:flutter/material.dart';
 import 'package:dio/dio.dart';
+import 'package:flutter/material.dart';
 import 'package:translator/translator.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:html/parser.dart' as parser;
@@ -36,10 +36,13 @@ class NewsProvider with ChangeNotifier {
           if (toLang != 'en') {
             final translator = GoogleTranslator();
             _news = await Future.wait(items.map((item) async {
-              String title = item.querySelector('h3.feed__title')?.text.trim() ?? '';
+              String title = item.querySelector('h3.feed__title a')?.text.trim() ?? '';
               String description = item.querySelector('p.feed__description')?.text.trim() ?? '';
-              String imageUrl = item.querySelector('img')?.attributes['src'] ?? '';
-              String link = item.querySelector('a')?.attributes['href'] ?? '';
+              String link = item.querySelector('h3.feed__title a')?.attributes['href'] ?? '';
+              if (link.isNotEmpty && !link.startsWith('http')) {
+                link = 'https://www.constructiondive.com$link';
+              }
+              String imageUrl = await _fetchImageURL(link);
               String translatedTitle = await _translateText(title, toLang, translator);
               String translatedDescription = await _translateText(description, toLang, translator);
               return {
@@ -50,18 +53,21 @@ class NewsProvider with ChangeNotifier {
               };
             }).toList());
           } else {
-            _news = items.map((item) {
-              String title = item.querySelector('h3.feed__title')?.text.trim() ?? '';
+            _news = await Future.wait(items.map((item) async {
+              String title = item.querySelector('h3.feed__title a')?.text.trim() ?? '';
               String description = item.querySelector('p.feed__description')?.text.trim() ?? '';
-              String imageUrl = item.querySelector('img')?.attributes['src'] ?? '';
-              String link = item.querySelector('a')?.attributes['href'] ?? '';
+              String link = item.querySelector('h3.feed__title a')?.attributes['href'] ?? '';
+              if (link.isNotEmpty && !link.startsWith('http')) {
+                link = 'https://www.constructiondive.com$link';
+              }
+              String imageUrl = await _fetchImageURL(link);
               return {
                 'title': title,
                 'description': description,
                 'image': imageUrl,
                 'link': link,
               };
-            }).toList();
+            }).toList());
           }
         } else {
           print("Error: ${response.statusMessage}");
@@ -75,6 +81,21 @@ class NewsProvider with ChangeNotifier {
 
     _isLoading = false;
     notifyListeners();
+  }
+
+  Future<String> _fetchImageURL(String newsLink) async {
+    try {
+      final response = await Dio().get(newsLink);
+      if (response.statusCode == 200) {
+        final document = parser.parse(response.data);
+        final imageUrl = document.querySelector('meta[name="sailthru.image.full"]')?.attributes['content'] ??
+            document.querySelector('meta[name="sailthru.image.thumb"]')?.attributes['content'] ?? '';
+        return imageUrl;
+      }
+    } catch (e) {
+      print("Error fetching image URL: $e");
+    }
+    return '';
   }
 
   Future<String?> _getNewsURL() async {

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:cached_network_image/cached_network_image.dart'; // Bu satırı ekleyin
 import 'package:url_launcher/url_launcher.dart';
 import '../news_provider.dart';
 
@@ -44,8 +45,12 @@ class NewsScreen extends StatelessWidget {
               itemBuilder: (context, index) {
                 return ListTile(
                   leading: newsProvider.news[index]['image'] != ''
-                      ? Image.network(newsProvider.news[index]['image']!)
-                      : null,
+                      ? CachedNetworkImage(
+                    imageUrl: newsProvider.news[index]['image']!,
+                    placeholder: (context, url) => CircularProgressIndicator(),
+                    errorWidget: (context, url, error) => Icon(Icons.error),
+                  )
+                      : Icon(Icons.image),
                   title: Text(newsProvider.news[index]['title']!),
                   subtitle: Text(newsProvider.news[index]['description']!),
                   onTap: () => _launchURL(context, newsProvider.news[index]['link']!),
@@ -61,7 +66,7 @@ class NewsScreen extends StatelessWidget {
   void _launchURL(BuildContext context, String url) async {
     final Uri uri = Uri.parse(url);
     if (await canLaunchUrl(uri)) {
-      await launchUrl(uri);
+      await launchUrl(uri, mode: LaunchMode.externalApplication);
     } else {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text('Could not launch $url')),
